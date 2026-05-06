@@ -233,6 +233,51 @@
             color: var(--primary);
         }
 
+        .team-card {
+            background: var(--card-hover);
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary);
+        }
+
+        .team-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .team-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), transparent);
+        }
+
+        .team-card-name {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .team-card-name svg {
+            color: var(--primary);
+        }
+
+        .team-card-hours {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
         .team-group {
             margin-bottom: 1.5rem;
             background: var(--card-hover);
@@ -464,15 +509,7 @@
                 </h2>
                 <span class="badge" id="teamsBadge">0 equipes</span>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Equipe/Loja</th>
-                        <th style="text-align: right;">Total de Horas</th>
-                    </tr>
-                </thead>
-                <tbody id="teamsTable"></tbody>
-            </table>
+            <div id="teamsContainer"></div>
         </div>
 
         <div id="techsSection" style="display: none;" class="section">
@@ -719,13 +756,20 @@
             document.getElementById('teamsBadge').textContent = `${sortedTeams.length} equipe${sortedTeams.length !== 1 ? 's' : ''}`;
             document.getElementById('techsBadge').textContent = `${sortedTechs.length} técnico${sortedTechs.length !== 1 ? 's' : ''}`;
 
-            // Preencher tabela de equipes
-            const teamsTable = document.getElementById('teamsTable');
-            teamsTable.innerHTML = sortedTeams.map(([team, hours]) => `
-                <tr>
-                    <td>${team}</td>
-                    <td style="text-align: right;" class="hours-value">${formatHours(hours)}</td>
-                </tr>
+            // Preencher cards de equipes separados
+            const teamsContainer = document.getElementById('teamsContainer');
+            teamsContainer.innerHTML = sortedTeams.map(([team, hours]) => `
+                <div class="team-card">
+                    <div class="team-card-header">
+                        <div class="team-card-name">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            ${team}
+                        </div>
+                        <div class="team-card-hours">${formatHours(hours)}</div>
+                    </div>
+                </div>
             `).join('');
 
             // Preencher tabela de técnicos agrupada por equipe
