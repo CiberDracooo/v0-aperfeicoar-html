@@ -496,6 +496,15 @@
                     <div class="value" id="totalTechs">0</div>
                     <div class="label">Técnicos</div>
                 </div>
+                <div class="stat-card">
+                    <div class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <div class="value" id="totalTaskTypes">0</div>
+                    <div class="label">Tipos de Tarefa</div>
+                </div>
             </div>
         </div>
 
@@ -523,6 +532,19 @@
                 <span class="badge" id="techsBadge">0 técnicos</span>
             </div>
             <div id="techsContainer"></div>
+        </div>
+
+        <div id="taskTypesSection" style="display: none;" class="section">
+            <div class="section-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    Horas por Tipo de Tarefa
+                </h2>
+                <span class="badge" id="taskTypesBadge">0 tipos</span>
+            </div>
+            <div id="taskTypesContainer"></div>
         </div>
 
         <div id="emptyState" class="section" style="display: none;">
@@ -568,6 +590,7 @@
             document.getElementById('statsSection').style.display = 'none';
             document.getElementById('teamsSection').style.display = 'none';
             document.getElementById('techsSection').style.display = 'none';
+            document.getElementById('taskTypesSection').style.display = 'none';
             document.getElementById('emptyState').style.display = 'none';
             uploadZone.style.display = 'block';
         }
@@ -710,6 +733,11 @@
                 'tempo de atendimento', 'tempo atendimento', 'tempo total'
             ]);
 
+            const taskTypeColumn = findColumn(firstRow, [
+                'tipo', 'type', 'tarefa', 'task', 'categoria', 'category', 
+                'tipo de tarefa', 'tipo tarefa', 'servico', 'serviço', 'atividade'
+            ]);
+
             if (!hoursColumn) {
                 showEmptyState();
                 return;
@@ -718,6 +746,8 @@
             const teamHours = {};
             const techHours = {};
             const techsByTeam = {}; // Técnicos agrupados por equipe
+            const taskTypeHours = {}; // Horas por tipo de tarefa
+            const techsByTaskType = {}; // Técnicos agrupados por tipo de tarefa
             let totalHours = 0;
 
             data.forEach(row => {
@@ -742,19 +772,36 @@
                         }
                         techsByTeam[team][tech] = (techsByTeam[team][tech] || 0) + hours;
                     }
+
+                    // Processar tipo de tarefa
+                    const taskType = taskTypeColumn && row[taskTypeColumn] ? String(row[taskTypeColumn]).trim() : null;
+                    if (taskType) {
+                        taskTypeHours[taskType] = (taskTypeHours[taskType] || 0) + hours;
+                        
+                        // Agrupar técnicos por tipo de tarefa
+                        if (tech) {
+                            if (!techsByTaskType[taskType]) {
+                                techsByTaskType[taskType] = {};
+                            }
+                            techsByTaskType[taskType][tech] = (techsByTaskType[taskType][tech] || 0) + hours;
+                        }
+                    }
                 }
             });
 
             // Ordenar por horas (decrescente)
             const sortedTeams = Object.entries(teamHours).sort((a, b) => b[1] - a[1]);
             const sortedTechs = Object.entries(techHours).sort((a, b) => b[1] - a[1]);
+            const sortedTaskTypes = Object.entries(taskTypeHours).sort((a, b) => b[1] - a[1]);
 
             // Atualizar estatísticas
             document.getElementById('totalHours').textContent = formatHours(totalHours);
             document.getElementById('totalTeams').textContent = sortedTeams.length;
             document.getElementById('totalTechs').textContent = sortedTechs.length;
+            document.getElementById('totalTaskTypes').textContent = sortedTaskTypes.length;
             document.getElementById('teamsBadge').textContent = `${sortedTeams.length} equipe${sortedTeams.length !== 1 ? 's' : ''}`;
             document.getElementById('techsBadge').textContent = `${sortedTechs.length} técnico${sortedTechs.length !== 1 ? 's' : ''}`;
+            document.getElementById('taskTypesBadge').textContent = `${sortedTaskTypes.length} tipo${sortedTaskTypes.length !== 1 ? 's' : ''}`;
 
             // Preencher cards de equipes separados
             const teamsContainer = document.getElementById('teamsContainer');
@@ -825,10 +872,58 @@
                 `;
             }).join('');
 
+            // Preencher seção de tipos de tarefa com técnicos
+            const taskTypesContainer = document.getElementById('taskTypesContainer');
+            
+            taskTypesContainer.innerHTML = sortedTaskTypes.map(([taskType, hours]) => {
+                const techs = techsByTaskType[taskType] || {};
+                const sortedTypeTechs = Object.entries(techs).sort((a, b) => b[1] - a[1]);
+                const techCount = sortedTypeTechs.length;
+                
+                return `
+                    <div class="team-group" data-tasktype="${taskType}">
+                        <div class="team-group-header" onclick="toggleTeamGroup(this)">
+                            <div class="team-name">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                </svg>
+                                ${taskType}
+                            </div>
+                            <div class="team-stats">
+                                <span class="team-count">${techCount} técnico${techCount !== 1 ? 's' : ''}</span>
+                                <span class="team-total">${formatHours(hours)}</span>
+                                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="team-group-content">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Técnico</th>
+                                        <th style="text-align: right;">Horas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sortedTypeTechs.map(([tech, techHrs]) => `
+                                        <tr>
+                                            <td>${tech}</td>
+                                            <td style="text-align: right;" class="hours-value">${formatHours(techHrs)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
             // Mostrar seções
             document.getElementById('statsSection').style.display = 'block';
             document.getElementById('teamsSection').style.display = sortedTeams.length > 0 ? 'block' : 'none';
             document.getElementById('techsSection').style.display = sortedTechs.length > 0 ? 'block' : 'none';
+            document.getElementById('taskTypesSection').style.display = sortedTaskTypes.length > 0 ? 'block' : 'none';
             document.getElementById('emptyState').style.display = 'none';
         }
 
@@ -836,6 +931,7 @@
             document.getElementById('statsSection').style.display = 'none';
             document.getElementById('teamsSection').style.display = 'none';
             document.getElementById('techsSection').style.display = 'none';
+            document.getElementById('taskTypesSection').style.display = 'none';
             document.getElementById('emptyState').style.display = 'block';
         }
 
